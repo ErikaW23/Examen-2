@@ -1,28 +1,328 @@
 ---
 title: "Examen_I_G2-C38600-ErikaWuLiang"
-format:
-  html:
-    embed-resources: true
+format: html
 editor: visual
 ---
 
-## Quarto
+[r.part](https://www.rdocumentation.org/packages/rpart.plot/versions/3.1.3/topics/rpart.plot)
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+[Repositorio de git](https://github.com/ErikaW23/Examen-2)
 
-## Running Code
+[read_delim](hhttps://www.spsanderson.com/steveondata/posts/2023-08-03/index.html)
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
-```{r}
-1 + 1
-```
-
-You can add options to executable code like this
+# Descargas
 
 ```{r}
-#| echo: false
-2 * 2
+library(tidyverse)
+library(readr)
+library(ggplot2)
+
+df <- read_delim("/Users/erika/Downloads/Excel herramientas/moras.txt", delim = ",", locale = locale(decimal_mark = ","))
+
+head(df)
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+# Resumen de 5 numeros
+
+```{r}
+str(df) #Confirmar variables númericas
+
+#Salario
+min(df$SALARIO, na.rm = TRUE)
+quantile(df$SALARIO, 0.25, na.rm = TRUE)
+median(df$SALARIO, na.rm = TRUE)
+quantile(df$SALARIO, 0.75, na.rm = TRUE)
+max(df$SALARIO, na.rm = TRUE)
+mean(df$SALARIO, na.rm = TRUE)
+
+#Edad
+min(df$EDAD, na.rm = TRUE)
+quantile(df$EDAD, 0.25, na.rm = TRUE)
+median(df$EDAD, na.rm = TRUE)
+quantile(df$EDAD, 0.75, na.rm = TRUE)
+max(df$EDAD, na.rm = TRUE)
+mean(df$EDAD, na.rm = TRUE)
+```
+
+# Z-Score
+
+```{r}
+calculo_salario <- (df$SALARIO - mean(df$SALARIO, na.rm = TRUE)) / sd(df$SALARIO, na.rm = TRUE)
+
+Z_Salario <- abs((df$SALARIO - mean(df$SALARIO, na.rm = TRUE)) / sd(df$SALARIO, na.rm = TRUE))
+Z_Edad <- abs((df$EDAD - mean(df$EDAD, na.rm = TRUE)) / sd(df$EDAD, na.rm = TRUE))
+
+df_prueba <- df_prueba %>%
+  mutate(
+    Atípico_Salario = ifelse(Z_Salario > 1.96, TRUE, FALSE),
+    Atípico_Edad = ifelse(Z_Edad > 1.96, TRUE, FALSE)
+  )
+df_prueba
+```
+
+# Valores faltantes
+
+```{r}
+colSums(is.na(df_prueba) / nrow(df_prueba)) * 100
+
+#En numéricas uso media
+df_prueba <- df_prueba %>%
+  mutate(
+    SALARIO = replace(SALARIO, is.na(SALARIO), mean(SALARIO, na.rm = TRUE))
+  )
+
+df_prueba <- df_prueba %>%
+  mutate(
+    EDAD = replace(EDAD, is.na(EDAD), mean(EDAD, na.rm = TRUE))
+  )
+
+#En categóricas
+df_prueba <- df_prueba %>%
+  mutate(
+    TIPO_ASEGURAMIENTO = replace(TIPO_ASEGURAMIENTO, is.na(TIPO_ASEGURAMIENTO), "DESCONOCIDO")
+  )
+```
+
+# Gráficos cantidad de individuos por catégoria
+
+```{r}
+#Categoricas
+
+#Sexo
+ggplot(data = df_prueba, aes(x = SEXO)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Individuos por sexo",
+       x = "Sexo", 
+       y = "Frecuencia"
+       )
+# Vemos que el caso del conteo por género, en el dataset están presentes más hombres que mujeres, la diferencia es de 1024 datos, indicando que mayoritariamente los hombres poseen más seguros que las mujeres registradas en el dataset.
+
+#Tipo de aseguramiento
+ggplot(data = df_prueba, aes(y = TIPO_ASEGURAMIENTO)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Individuos por tipo de aseguramiento",
+       x = "Frecuencia", 
+       y = "Tipo de aseguradora"
+       )
+# Vemos que la mayoria de los datos son gente asalariada son alrededor de un total de 3500 personas eso implica que este grupo de gente son asegurados problablemente por el trabajo, siendo el grupo más grande. Le siguen los trabajadores independientes lo cual representa que estos individuos tienen sus seguros por cuenta propia.
+
+#Sector
+ggplot(data = df_prueba, aes(x = SECTOR)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Individuos por sector",
+       x = "Sector", 
+       y = "Frecuencia"
+       )
+# La distribución de este gráfico implica que la mayoría de personas son del sector privado, de hecho hay una brecha bastante grande entre el público y el privado con una diferencia de alrededor de 3000 datos.
+
+#Indicador activo
+ggplot(data = df_prueba, aes(x = INDICADOR_ACTIVO)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Individuos por indicador activo",
+       x = "Activo", 
+       y = "Frecuencia"
+       )
+# Este gráfico indica que prácticamente todas las personas del dataset disfrutan de poseer un seguro activamente, de hecho hay solo 34 personas que están inactivas, resultando en una brecha bastante alta en la diferenciación.
+
+#Indicador extranjero
+ggplot(data = df_prueba, aes(x = INDICADOR.EXTRANJERO)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Individuos por indicador extranjero",
+       x = "Extranjero", 
+       y = "Frecuencia"
+       )
+# Está becha entre los dos valores es bastante, la diferenciación es de 3794 datos, como vemos la gran mayoría indica que no, implicando que la mayoría son nacionales, mientras que el resto son extranjeros. Esto demuestra que la mayoría de personas dentro del dataset que poseen seguro son del país de referencia.
+
+#Indicador moroso
+ggplot(data = df_prueba, aes(x = INDICADOR_MOROSO)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Individuos por indicador moroso",
+       x = "Moroso", 
+       y = "Frecuencia"
+       )
+# Este brecha es de 3260 entre las dos posibilidades, como la mayoría de los datos dice que no eso implica que más personas no son mororsas y no tienen ninguna cuenta pendiente, mientras que el resto de las 370 personas sí estan mororsas y contienen un pago pendiente con la aseguradora.
+
+#Numéricas
+#Salarios 
+ggplot(data = df_prueba, aes(x = SALARIO)) +
+  geom_histogram(fill = "skyblue", 
+                 color = "white",
+                 bins = 30) +
+  scale_x_continuous(labels = scales::comma) +
+  coord_cartesian(xlim = c(50000, 3000000))
+  labs(title = "Histograma de Salarios", 
+       x = "Salarios", 
+       y = "Frecuencia") +
+  theme_minimal()
+# Tuve problemas para el acorte entonces me decidí enfocar en donde la mayoria de datos está, estos tienen más presencia en el rango de 0 a un millón de hecho este histograma va decreciendo a lo que aumentan los valores, por ello eso implica que mientras más dinero ganen en sus salarios, menor es la caantidad de gente que gana esa cantidad
+
+#Edad
+ggplot(data = df_prueba, aes(x = EDAD)) +
+  geom_histogram(fill = "skyblue", 
+                 color = "white",
+                 bins = 30) +
+  labs(title = "Histograma de Edad", 
+       x = "Edad", 
+       y = "Frecuencia") +
+  theme_minimal()
+# Hay una distribución bastante mezclada, hay algunos picos pero no están constantes, aún así puede verse que la mayoría de personas están entre 24 años a 64 años pues aunque hay picos en medio de sus valores, sin contarlos vemos una constancia, mientras que ua después de los 64 años hay una clara decaida, indicando que los maayores beneficierias de un seguro son relativamente jovenes.
+
+```
+
+# Gráficos categóricos por porcentaje de morosos en cada clase
+
+```{r}
+#Sexo
+df_prueba %>%
+  group_by(SEXO) %>%
+  summarise(
+    total = n(),
+    morosos = sum(INDICADOR_MOROSO == "SI"),
+    porcentaje = morosos / total * 100
+  ) %>%
+  ggplot(aes(x = SEXO, y = porcentaje)) +
+  geom_col(fill = "skyblue") +
+  labs(title = "Porcentaje de morosos por sexo",
+       x = "Sexo",
+       y = "% de morosos")
+# Vemos que el porcentaje es bastante equilibrado entre los dos géneros, aquí hay una leve diferencia en que los hombres tiene más procentaje lo que immplica que hay más morosos masculinos que femeninos en los datos registrados
+
+#Tipo de aseguramiento
+df_prueba %>%
+  group_by(TIPO_ASEGURAMIENTO) %>%
+  summarise(
+    total = n(),
+    morosos = sum(INDICADOR_MOROSO == "SI"),
+    porcentaje = morosos / total * 100
+  ) %>%
+  ggplot(aes(x = porcentaje, y = TIPO_ASEGURAMIENTO)) +
+  geom_col(fill = "skyblue") +
+  labs(title = "Porcentaje de morosos por \ntipo de aseguramiento",
+       x = "% de morosos",
+       y = "Tipo de aseguramiento")
+# Hay dos datos que resaltan en esté gráfico, los trabajadores independientes y desconocidos, este par tiene un porcentaje de morosidad mucho más grande que el resto de datos implicando que el riesgo sea muchísimo mayor para las personas en alguno de los dos grupos, aunque en el caso particular de los desconocidos es que su porcentaje es alto por el hecho de solo tener dos personas que lo integran lo cual hace que su porcentaje se eleve, mientras que con los independientes si tenemos información suficiente de que el riesgo es mayoritario.
+
+#Sector
+df_prueba %>%
+  group_by(SECTOR) %>%
+  summarise(
+    total = n(),
+    morosos = sum(INDICADOR_MOROSO == "SI"),
+    porcentaje = morosos / total * 100 
+  ) %>%
+  ggplot(aes(x = SECTOR, y = porcentaje)) +
+  geom_col(fill = "skyblue") +
+  labs(title = "Porcentaje de morosos por sector",
+       x = "Sector",
+       y = "% de morosos")
+# Vemos que la diferencia entre el sector público y privado es relativamente baja, pero aún así resulta que los del sector privado tiene mayor tendencia a las morosidades que los del público, esto puede que se deba a que el sector privado no posee tanta estabilidad como la pública además de que hay una mayor distinción de los salarios en ese sector.
+
+#Indicador Activo
+df_prueba %>%
+  group_by(INDICADOR_ACTIVO) %>%
+  summarise(
+    total = n(),
+    morosos = sum(INDICADOR_MOROSO == "SI"),
+    porcentaje = morosos / total * 100
+  ) %>%
+  ggplot(aes(x = INDICADOR_ACTIVO, y = porcentaje)) +
+  geom_col(fill = "skyblue") +
+  labs(title = "Porcentaje de morosos por indicador activo",
+       x = "Indicador activo",
+       y = "% de morosos")
+# Ambos porcentajes de los dos grupos son bastante elevados, en los activos podemos ver casi un 20% de morosidad lo cual aunque alto se considera moderado ante la cantidad de personas registradas que hay, por otro lado, los no activos indican alrededor de un 45% de morosidad, más del doble de los activos lo cual puede ser debido a que perder la actividad sea por deudas constantes con la aseguradora indicando problemas y mayores riesgos.
+
+#Indicardor Extranjero
+df_prueba %>%
+  group_by(INDICADOR.EXTRANJERO) %>%
+  summarise(
+    total = n(),
+    morosos = sum(INDICADOR_MOROSO == "SI"),
+    porcentaje = morosos / total * 100
+  ) %>%
+  ggplot(aes(x = INDICADOR.EXTRANJERO, y = porcentaje)) +
+  geom_col(fill = "skyblue") +
+  labs(title = "Porcentaje de morosos por indicador extranjero",
+       x = "Indicador extranjero",
+       y = "% de morosos")
+# La morosidad de los extranjeros es alta en comparativo con los no extranjeros, esto puede ser debido a lo vulnerables que son este grupo de personas al no tener tantaas alternativas de ayuda a como las tiene un nacional, aunque hay que tomar en cuenta que a menos en esta tabla de datos los extranjeros son un grupo muy pequeño entonces habria que verificar con más exactitud.
+```
+
+#Numéricas de color si es moroso o no
+
+```{r}
+# Separaciones de los rangos por salario
+salario_rangos <- df_prueba %>%
+  mutate(rango_salario = cut(
+    SALARIO,
+    breaks = c(0, 250000, 500000, 750000, 1000000, Inf),
+    labels = c("<250k", "250k–500k", "500k–750k", "750k–1M", ">1M"),
+    include.lowest = TRUE
+  ))
+
+ggplot(data = salario_rangos, aes(x = rango_salario, fill = INDICADOR_MOROSO)) +
+  geom_bar(color = "black") +
+  scale_fill_manual(values = c("NO" = "skyblue", "SI" = "blue")) +
+  labs(title = "Frecuencia de morosos por rango salarial",
+       x = "Rango salarial",
+       y = "Frecuencia",
+       fill = "Moroso") +
+  theme_minimal()
+# Este gráfico indica que hay una morosidad en los rangos de 250k a 750k mientras que en cualquier otro de los rangos se ve estable la cantidad, esto puede ser por el hecho de que aquellas personas que tienen un salario intermedio tengan mayor presión economicamente y que gracias a ello sufren de mayor probabilidad a ser morosos. Contrario a lo anterior, aquellos con salario relaativamente bajo no poseen tanta morosidad que puede darse al tener mayor precaución con los gastos que hacen, en su opuesto aquellos que ganan mucho, no deben preoucparse mucho por pagos al tener mayor libertad de gasto.
+
+
+#Separaciones de los rangos de edad
+edad_rangos <- df_prueba %>%
+  mutate(rango_edad = cut(
+    EDAD,
+    breaks = c(0, 30, 39, 49, 59, Inf),
+    labels = c("<30", "30–39", "40–49", "50–59", "<60"),
+    include.lowest = TRUE
+  ))
+
+ggplot(data = edad_rangos, aes(x = rango_edad, fill = INDICADOR_MOROSO)) +
+  geom_bar(color = "black") +
+  scale_fill_manual(values = c("NO" = "skyblue", "SI" = "blue")) +
+  labs(title = "Frecuencia de morosos por rango de edad",
+       x = "Rango de edad",
+       y = "Frecuencia",
+       fill = "Moroso") +
+  theme_minimal()
+# Hay una clara representación de morosidad alta en las edades intermedias (30 a 59), mientras que sus extremos tienen menor cantidad, esto implica que aquellas personas en el rango medio tienen mayor riesgo a tener morosidades, esto puede ser a debido a que en esos rangos de edades las personas tienen más cuentas que hacer y más reponsabilidades en medio, lo cual puede provocar descuidos económicos no intencionales.
+```
+
+# Árbol
+
+```{r}
+#Borrar la columna identificación y hacer modificaciones
+library(rpart)
+library(rpart.plot)
+
+df_arreglado <- df_prueba[, c(
+  "SEXO",
+  "SALARIO",
+  "TIPO_ASEGURAMIENTO",
+  "SECTOR",
+  "INDICADOR_ACTIVO",
+  "INDICADOR.EXTRANJERO",
+  "EDAD",
+  "INDICADOR_MOROSO")]
+
+df_arreglado$INDICADOR_MOROSO <- factor(df_arreglado$INDICADOR_MOROSO, levels = c("NO", "SI"))
+df_arreglado$SEXO <- factor(df_arreglado$SEXO)
+df_arreglado$TIPO_ASEGURAMIENTO <- factor(df_arreglado$TIPO_ASEGURAMIENTO)
+df_arreglado$SECTOR <- factor(df_arreglado$SECTOR)
+df_arreglado$INDICADOR_ACTIVO <- factor(df_arreglado$INDICADOR_ACTIVO)
+df_arreglado$INDICADOR_EXTRANJERO <- factor(df_arreglado$INDICADOR.EXTRANJERO)
+
+tree <- rpart(
+  INDICADOR_MOROSO ~ .,
+  data = df_arreglado,
+  method = "class" 
+)
+
+rpart.plot(tree)
+
+
+# Explicación: Los morosos forman parte de del 0.17% de los datos recopilados, vemos que las variables más influyentes son su tipo de de aseguramiento, indicador extranjero y su salario. Generalmente las personas no son morosas, pero aquellas personas que forman parte del tipo de concenios especiales tienden a una mayor posibilidad a ser morosos pues un 0.56% de alguno de esos grupos terminan siendo morosos, luego el indicador de extranjeros que dice que aquellas personas extranjeras tienen mayor probabilidad de morosidad y por último las personas que tienen un salario debajo de 304.000 tienen mayor riesgo a morosidades. Con esto podemos dejar claro que el tipo de aseguradora es la que más peso tiene sobre las morosidaades, entonces hay que tener mayor precaución con ello, para las aseguradoras si quieren evitar morosidades es mejor registrar a personas nacionales que tengan un salario mayor a 304.000.
+```
